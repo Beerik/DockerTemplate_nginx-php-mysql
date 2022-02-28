@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  php-fpm:
+    image: php:fpm
+    restart: unless-stopped
+    working_dir: /var/www/public
+    volumes:
+      - ./website:/var/www
+
+    build:
+      context: ./
+      dockerfile: Dockerfile
+
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./website:/var/www
+      - ./configuration/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    links:
+      - php-fpm
+
+  app-db:
+    image: mysql
+    restart: unless-stopped
+    build:
+      context: ./database
+    environment:
+      # MYSQL_DATABASE: animali
+      MYSQL_USER: user
+      MYSQL_PASSOWRD: user
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./database:/var/lib/mysql
+    ports:
+      - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: app-db
+      PMA_USER: root # Remove line for production
+      PMA_PASSWORD: root # Remove line for production
+      PHP_UPLOAD_MAX_FILESIZE: 100MB
+    depends_on:
+      - app-db
+    ports:
+      - "82:80"
